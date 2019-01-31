@@ -21,7 +21,9 @@
         android:id="@+id/actv_recent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
+        android:inputType="text"
+        android:ellipsize="middle"
+        android:singleLine="true"
         />
 
     <LinearLayout

@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View view) {
         Log.d("VideoPlayer", "onClick("+view+")");
         if (view.getId() == R.id.b_play) {
-            EditText et = findViewById(R.id.et_url);
+            EditText et = findViewById(R.id.actv_recent);
             CheckBox cb_hideTitle = findViewById(R.id.cb_hide_title);
             CheckBox cb_hideStatus = findViewById(R.id.cb_hide_status);
 
