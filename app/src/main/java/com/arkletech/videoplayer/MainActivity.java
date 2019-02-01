@@ -1,12 +1,19 @@
 package com.arkletech.videoplayer;
 
+import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +26,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
@@ -50,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         cb_hideStatus.setChecked(true);
         Button button = findViewById(R.id.b_play);
         button.setOnClickListener((View.OnClickListener) this);
+        button = findViewById(R.id.bt_edit_history);
+        button.setOnClickListener(this);
         button = findViewById(R.id.bt_clear_history);
         button.setOnClickListener(this);
 
@@ -74,11 +84,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             url_entries[0] = "";
         }
         //Creating the instance of ArrayAdapter containing list
-        mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, url_entries);
+        mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, url_entries) {
+            @NonNull
+            @Override
+            public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+                View v = super.getView(position, convertView, parent);
+                v.setBackgroundColor(Color.LTGRAY);
+                return v;
+            }
+        };
         mActv = (AutoCompleteTextView)findViewById(R.id.actv_recent);
         mActv.setThreshold(1);
         mActv.setAdapter(mAdapter);
         mActv.setOnClickListener(this);
+
+
 
         mVideoPlayer = new Intent(getApplicationContext(), PlayVideoActivity.class);
     }
@@ -138,12 +158,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if (view.getId() == R.id.actv_recent) {
             mActv.showDropDown();
         }
+        else if (view.getId() == R.id.bt_edit_history) {
+            Dialog diagEditUrl = new Dialog(this);
+            diagEditUrl.setTitle("Edit Recent");
+            diagEditUrl.setContentView(R.layout.dialog_listview_layout);
+            ListView lv = diagEditUrl.findViewById(R.id.lv_url_liet);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.dropdown_itme_layout, url_entries);
+            lv.setAdapter(adapter);
+//            lv.setOnItemClickListener();
+            diagEditUrl.show();
+        }
         else if (view.getId() == R.id.bt_clear_history) {
-            mAdapter.clear();
-            urlList.clear();
-            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.clear().apply();
+            // Display "Are you sure? Dialog
+            AlertDialog.Builder builder;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+            } else {
+                builder = new AlertDialog.Builder(this);
+            }
+            builder.setTitle("Delete URLs History")
+                    .setMessage("Are you sure?")
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            mAdapter.clear();
+                            urlList.clear();
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.clear().apply();
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // do nothing
+                        }
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
         }
     }
 }

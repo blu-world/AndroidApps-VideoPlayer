@@ -39,19 +39,18 @@
             android:text="Hide Status Bar" />
 
         <TextView
-            android:id="@+id/textView"
+            android:id="@+id/textView1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="6"
             android:text="" />
 
         <Button
-            android:id="@+id/bt_clear_history"
+            android:id="@+id/bt_edit_history"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Clear History"
-            />
+            android:text="  Edit History  " />
     </LinearLayout>
 
     <LinearLayout
@@ -65,6 +64,19 @@
             android:layout_height="wrap_content"
             android:checked="true"
             android:text="Hide App Title" />
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="6"
+            android:text="" />
+
+        <Button
+            android:id="@+id/bt_clear_history"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Clear History" />
     </LinearLayout>
 
     <Button
