@@ -48,7 +48,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         cb_hideTitle.setChecked(true);
         CheckBox cb_hideStatus = findViewById(R.id.cb_hide_status);
         cb_hideStatus.setChecked(true);
-        Button bPlay = findViewById(R.id.b_play);
+        Button button = findViewById(R.id.b_play);
+        button.setOnClickListener((View.OnClickListener) this);
+        button = findViewById(R.id.bt_clear_history);
+        button.setOnClickListener(this);
 
         urlList = new Vector<String>();
 
@@ -76,8 +79,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mActv.setThreshold(1);
         mActv.setAdapter(mAdapter);
         mActv.setOnClickListener(this);
-
-        bPlay.setOnClickListener((View.OnClickListener) this);
 
         mVideoPlayer = new Intent(getApplicationContext(), PlayVideoActivity.class);
     }
@@ -136,6 +137,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         else if (view.getId() == R.id.actv_recent) {
             mActv.showDropDown();
+        }
+        else if (view.getId() == R.id.bt_clear_history) {
+            mAdapter.clear();
+            urlList.clear();
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.clear().apply();
         }
     }
 }
