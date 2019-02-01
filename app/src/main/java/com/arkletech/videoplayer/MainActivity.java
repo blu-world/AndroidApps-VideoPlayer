@@ -2,13 +2,12 @@ package com.arkletech.videoplayer;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
-import android.graphics.PixelFormat;
-import android.media.MediaPlayer;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -19,8 +18,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -28,11 +25,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.MediaController;
-import android.widget.TextView;
 import android.widget.VideoView;
 
-import java.util.Arrays;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -43,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     VideoView vv;
     Intent mVideoPlayer = null;
     String[] url_entries;
-    Vector<String> urlList;
+    Vector<String> mUrlList;
     AutoCompleteTextView mActv;
     ArrayAdapter<String> mAdapter;
 
@@ -65,20 +59,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         button = findViewById(R.id.bt_clear_history);
         button.setOnClickListener(this);
 
-        urlList = new Vector<String>();
+        mUrlList = new Vector<String>();
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String str = preferences.getString(URL_LIST, null);
-        if (str != null) {
-            int b=0, e=0;
-            while ((e=str.indexOf('\n', b)) != -1) {
-                urlList.add(str.substring(b, e));
-                b = e + 1;
-            }
-            urlList.add(str.substring(b));  // add the last one
-            updateUrlEntries();
-        }
-        updateUrlEntries();
+        loadPreferences(this);
+
+        updateAdapterUrlEntries();
 
         //Creating the instance of ArrayAdapter containing list
         mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, url_entries) {
@@ -94,8 +79,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mActv.setThreshold(1);
         mActv.setAdapter(mAdapter);
         mActv.setOnClickListener(this);
-
-
 
         mVideoPlayer = new Intent(getApplicationContext(), PlayVideoActivity.class);
     }
@@ -123,31 +106,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mVideoPlayer.putExtra("HideAppTitleBar", (cb_hideTitle.isChecked()?"true":"false"));
 
             // save to preference
-            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-            SharedPreferences.Editor editor = preferences.edit();
             String str=et.getText().toString();
             boolean found = false;
-            for (int i=0; i<urlList.size(); i++) {
-                if (str.compareTo(urlList.get(i)) == 0) {
+            for (int i = 0; i< mUrlList.size(); i++) {
+                if (str.compareTo(mUrlList.get(i)) == 0) {
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                urlList.add(str);
-                updateUrlEntries();
+                mUrlList.add(str);
+                updateAdapterUrlEntries();
                 mAdapter.add(str);
             }
 
-            str = "";
-            for (int i=0; i<urlList.size(); i++) {
-                str += urlList.get(i);
-                if (i != urlList.size()-1)
-                    str += "\n";
-            }
-
-            editor.putString(URL_LIST, str);
-            editor.apply();
+            savePreferences(this);
 
             startActivity(mVideoPlayer);
         }
@@ -177,18 +150,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     mAdapter.remove(url_entries[item]);
-                                    urlList.remove(item);
-                                    updateUrlEntries();
-                                    String str = "";
-                                    for (int i=0; i<urlList.size(); i++) {
-                                        str += urlList.get(i);
-                                        if (i != urlList.size()-1)
-                                            str += "\n";
-                                    }
-                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                                    SharedPreferences.Editor editor = preferences.edit();
-                                    editor.putString(URL_LIST, str);
-                                    editor.clear().apply();
+                                    mUrlList.remove(item);
+                                    updateAdapterUrlEntries();
+                                    savePreferences(MainActivity.this);
                                 }
                             })
                             .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
@@ -222,7 +186,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
                             mAdapter.clear();
-                            urlList.clear();
+                            mUrlList.clear();
                             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                             SharedPreferences.Editor editor = preferences.edit();
                             editor.clear().apply();
@@ -238,17 +202,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    void updateUrlEntries()
+    protected void updateAdapterUrlEntries()
     {
-        if (urlList == null || urlList.size() == 0) {
+        if (mUrlList == null || mUrlList.size() == 0) {
             url_entries = new String[1];
             url_entries[0] = "";
         }
         else {
-            url_entries = new String[urlList.size()];
-            for (int i = 0; i < urlList.size(); i++) {
-                url_entries[i] = urlList.get(i);
+            url_entries = new String[mUrlList.size()];
+            for (int i = 0; i < mUrlList.size(); i++) {
+                url_entries[i] = mUrlList.get(i);
             }
         }
+    }
+
+    protected void loadPreferences(Context context)
+    {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String str = preferences.getString(URL_LIST, null);
+        if (str != null) {
+            int b=0, e=0;
+            while ((e=str.indexOf('\n', b)) != -1) {
+                mUrlList.add(str.substring(b, e));
+                b = e + 1;
+            }
+            mUrlList.add(str.substring(b));  // add the last one
+        }
+    }
+
+    protected void savePreferences(Context context)
+    {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        String str = "";
+        for (int i = 0; i< mUrlList.size(); i++) {
+            str += mUrlList.get(i);
+            if (i != mUrlList.size()-1)
+                str += "\n";
+        }
+        editor.putString(URL_LIST, str);
+        editor.apply();
     }
 }
