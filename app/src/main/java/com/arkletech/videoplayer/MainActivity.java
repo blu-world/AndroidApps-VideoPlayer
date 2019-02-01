@@ -21,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -35,6 +36,7 @@ import java.util.Arrays;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    static final String TAG="App::VideoPlayer";
     static String URL_LIST="url_list";
     String video_url = "http://videocdn.bodybuilding.com/video/mp4/62000/62792m.mp4";
     private static ProgressDialog progressDialog;
@@ -74,15 +76,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 b = e + 1;
             }
             urlList.add(str.substring(b));  // add the last one
-            url_entries = new String[urlList.size()];
-            for (int i=0; i<urlList.size(); i++) {
-                url_entries[i] = urlList.get(i);
-            }
+            updateUrlEntries();
         }
-        else {
-            url_entries = new String[1];
-            url_entries[0] = "";
-        }
+        updateUrlEntries();
+
         //Creating the instance of ArrayAdapter containing list
         mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, url_entries) {
             @NonNull
@@ -138,8 +135,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             if (!found) {
                 urlList.add(str);
-                url_entries = Arrays.copyOf(url_entries, url_entries.length+1);
-                url_entries[url_entries.length-1] = str;
+                updateUrlEntries();
                 mAdapter.add(str);
             }
 
@@ -159,13 +155,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mActv.showDropDown();
         }
         else if (view.getId() == R.id.bt_edit_history) {
-            Dialog diagEditUrl = new Dialog(this);
+            final Dialog diagEditUrl = new Dialog(this);
             diagEditUrl.setTitle("Edit Recent");
             diagEditUrl.setContentView(R.layout.dialog_listview_layout);
-            ListView lv = diagEditUrl.findViewById(R.id.lv_url_liet);
+            ListView lv = diagEditUrl.findViewById(R.id.lv_url_list);
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.dropdown_itme_layout, url_entries);
             lv.setAdapter(adapter);
-//            lv.setOnItemClickListener();
+            lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                    Log.d(TAG, "onItemClick("+i+")");
+                    final int item = i;
+                    AlertDialog.Builder builder;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        builder = new AlertDialog.Builder(MainActivity.this, android.R.style.Theme_Material_Dialog_Alert);
+                    } else {
+                        builder = new AlertDialog.Builder(MainActivity.this);
+                    }
+                    builder.setTitle("Delete URL ...")
+                            .setMessage("Are you sure?")
+                            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    mAdapter.remove(url_entries[item]);
+                                    urlList.remove(item);
+                                    updateUrlEntries();
+                                    String str = "";
+                                    for (int i=0; i<urlList.size(); i++) {
+                                        str += urlList.get(i);
+                                        if (i != urlList.size()-1)
+                                            str += "\n";
+                                    }
+                                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                                    SharedPreferences.Editor editor = preferences.edit();
+                                    editor.putString(URL_LIST, str);
+                                    editor.clear().apply();
+                                }
+                            })
+                            .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // do nothing
+                                }
+                            })
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .show();
+                }
+            });
+            Button bt = diagEditUrl.findViewById(R.id.bt_dialog_ok);
+            bt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    diagEditUrl.dismiss();
+                }
+            });
             diagEditUrl.show();
         }
         else if (view.getId() == R.id.bt_clear_history) {
@@ -194,6 +235,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     })
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .show();
+        }
+    }
+
+    void updateUrlEntries()
+    {
+        if (urlList == null || urlList.size() == 0) {
+            url_entries = new String[1];
+            url_entries[0] = "";
+        }
+        else {
+            url_entries = new String[urlList.size()];
+            for (int i = 0; i < urlList.size(); i++) {
+                url_entries[i] = urlList.get(i);
+            }
         }
     }
 }
