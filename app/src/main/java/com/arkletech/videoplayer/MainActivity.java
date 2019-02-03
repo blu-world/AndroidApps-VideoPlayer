@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mUrlList = new Vector<String>();
 
-        loadPreferences(this);
+        loadPreferences(MainActivity.this);
 
         updateAdapterUrlEntries();
 
@@ -132,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             diagEditUrl.setTitle("Edit Recent");
             diagEditUrl.setContentView(R.layout.dialog_listview_layout);
             ListView lv = diagEditUrl.findViewById(R.id.lv_url_list);
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.dropdown_itme_layout, url_entries);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.dialog_itme_layout, url_entries);
             lv.setAdapter(adapter);
             lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
@@ -153,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     mUrlList.remove(item);
                                     updateAdapterUrlEntries();
                                     savePreferences(MainActivity.this);
+                                    diagEditUrl.dismiss();
                                 }
                             })
                             .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
@@ -204,6 +205,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     protected void updateAdapterUrlEntries()
     {
+        Log.d(TAG, "updateAdapterUrlEntries(size="+mUrlList.size()+")");
         if (mUrlList == null || mUrlList.size() == 0) {
             url_entries = new String[1];
             url_entries[0] = "";
@@ -228,10 +230,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             mUrlList.add(str.substring(b));  // add the last one
         }
+        Log.d(TAG, "loadPreferences():");
+        for (int i=0; i<mUrlList.size(); i++)
+            Log.d(TAG, mUrlList.get(i));
     }
 
     protected void savePreferences(Context context)
     {
+        Log.d(TAG, "savePreferences():");
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         String str = "";
