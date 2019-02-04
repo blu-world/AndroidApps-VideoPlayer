@@ -13,8 +13,6 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -36,7 +34,8 @@ import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     static final String TAG="App::VideoPlayer";
-    static String URL_LIST="url_list";
+    static final String URL_LIST="url_list";
+    static final String APP_THEME="appTheme";
     String video_url = "http://videocdn.bodybuilding.com/video/mp4/62000/62792m.mp4";
     private static ProgressDialog progressDialog;
     VideoView vv;
@@ -45,10 +44,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Vector<String> mUrlList;
     AutoCompleteTextView mActv;
     ArrayAdapter<String> mAdapter;
+    String mAppTheme;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        mUrlList = new Vector<String>();
+
+        loadPreferences(MainActivity.this);
+
+        if (mAppTheme.compareTo("theme_dark") == 0)
+            setTheme(R.style.AppTheme_Dark_NoActionBar);
+        else
+            setTheme(R.style.AppTheme_Light_NoActionBar);
+
         super.onCreate(savedInstanceState);
+
+        updateAdapterUrlEntries();
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -72,12 +84,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         button.setOnClickListener(this);
         button = findViewById(R.id.bt_clear_history);
         button.setOnClickListener(this);
-
-        mUrlList = new Vector<String>();
-
-        loadPreferences(MainActivity.this);
-
-        updateAdapterUrlEntries();
 
         //Creating the instance of ArrayAdapter containing list
         mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, url_entries) {
@@ -115,6 +121,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        }
+        else if (id == R.id.action_toggle) {
+            if (mAppTheme.compareTo("theme_dark") == 0) {
+                setTheme(R.style.AppTheme_Light);
+                mAppTheme = "theme_light";
+            }
+            else {
+                setTheme(R.style.AppTheme_Dark);
+                mAppTheme = "theme_dark";
+            }
+            savePreferences(this);
+
+            Intent intent = getIntent();
+            finish();
+
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
@@ -259,7 +281,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void loadPreferences(Context context)
     {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String str = preferences.getString(URL_LIST, null);
+        String str;
+        mAppTheme = preferences.getString(APP_THEME, "theme_dark");
+
+        str = preferences.getString(URL_LIST, null);
         if (str != null) {
             int b=0, e=0;
             while ((e=str.indexOf('\n', b)) != -1) {
@@ -278,6 +303,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "savePreferences():");
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(APP_THEME, mAppTheme);
         String str = "";
         for (int i = 0; i< mUrlList.size(); i++) {
             str += mUrlList.get(i);
