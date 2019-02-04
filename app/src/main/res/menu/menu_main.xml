@@ -6,7 +6,7 @@
         android:id="@+id/action_toggle"
         android:orderInCategory="100"
         app:showAsAction="always"
-        android:icon="@android:drawable/ic_menu_view"
+        android:icon="@android:drawable/ic_menu_set_as"
         android:title="Toggle Theme"
         />
     <item
