@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -28,6 +29,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.VideoView;
 
 import java.util.Vector;
@@ -65,14 +67,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-//        FloatingActionButton fab = findViewById(R.id.fab);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d(TAG, "fab::onClick()");
 //            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                    .setAction("Action", null).show();
-//            }
-//        });
+                TextView tv = findViewById(R.id.actv_recent);
+                tv.setText("");
+            }
+        });
 
         CheckBox cb_hideTitle = findViewById(R.id.cb_hide_title);
         cb_hideTitle.setChecked(true);
@@ -132,10 +137,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mAppTheme = "theme_dark";
             }
             savePreferences(this);
-
+            // restart the app to use the new Theme
             Intent intent = getIntent();
             finish();
-
             startActivity(intent);
         }
 
