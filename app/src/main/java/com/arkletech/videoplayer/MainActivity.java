@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     static final String TAG="App::VideoPlayer";
     static final String URL_LIST="url_list";
     static final String APP_THEME="appTheme";
-    String video_url = "http://videocdn.bodybuilding.com/video/mp4/62000/62792m.mp4";
+//    String video_url = "http://videocdn.bodybuilding.com/video/mp4/62000/62792m.mp4";
     private static ProgressDialog progressDialog;
     VideoView vv;
     Intent mVideoPlayer = null;
@@ -55,20 +55,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ArrayAdapter<String> mAdapter;
     String mAppTheme;
     boolean bFabSubShown=false;
-//    FloatingActionButton mFab;
     ImageButton mFab;
 
-    private View fabAction1;
-    private View fabAction2;
-    private View fabAction3;
+    private View fabMenuItem1;
+    private View fabMenuItem2;
+    private View fabMenuItem3;
 
     private float offset1;
     private float offset2;
     private float offset3;
 
-    private TextView fabActionText1;
-    private TextView fabActionText2;
-    private TextView fabActionText3;
+    private TextView fabMenuText1;
+    private TextView fabMenuText2;
+    private TextView fabMenuText3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,13 +90,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         final ViewGroup fabContainer = (ViewGroup) findViewById(R.id.fab_container);
 
-        fabAction1 = findViewById(R.id.fab_rl1);
-        fabAction2 = findViewById(R.id.fab_rl2);
-        fabAction3 = findViewById(R.id.fab_rl3);
+        fabMenuItem1 = findViewById(R.id.fab_rl1);
+        fabMenuItem2 = findViewById(R.id.fab_rl2);
+        fabMenuItem3 = findViewById(R.id.fab_rl3);
 
-        fabActionText1 = findViewById(R.id.tv_fab1);
-        fabActionText2 = findViewById(R.id.tv_fab2);
-        fabActionText3 = findViewById(R.id.tv_fab3);
+        fabMenuText1 = findViewById(R.id.tv_fab1);
+        fabMenuText2 = findViewById(R.id.tv_fab2);
+        fabMenuText3 = findViewById(R.id.tv_fab3);
 
         ImageView btn;
         btn = findViewById(R.id.fab_iv_1);
@@ -118,9 +117,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else
                     mFab.setImageResource(R.mipmap.baseline_add_white);
                 if (bFabSubShown)
-                    expandFab();
+                    expandFabMenu();
                 else
-                    collapseFab();
+                    collapseFabMenu();
             }
         });
 
@@ -129,12 +128,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public boolean onPreDraw() {
                 // We don't need to continue listening this during the animation
                 fabContainer.getViewTreeObserver().removeOnPreDrawListener(this);
-                offset1 = mFab.getY() - fabAction1.getY();
-                fabAction1.setTranslationY(offset1);
-                offset2 = mFab.getY() - fabAction2.getY();
-                fabAction2.setTranslationY(offset2);
-                offset3 = mFab.getY() - fabAction3.getY();
-                fabAction3.setTranslationY(offset3);
+                offset1 = mFab.getY() - fabMenuItem1.getY();
+                fabMenuItem1.setTranslationY(offset1);
+                offset2 = mFab.getY() - fabMenuItem2.getY();
+                fabMenuItem2.setTranslationY(offset2);
+                offset3 = mFab.getY() - fabMenuItem3.getY();
+                fabMenuItem3.setTranslationY(offset3);
 
                 return true;
             }
@@ -254,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 //            case R.id.bt_edit_history:
             case R.id.fab_iv_3:
-                collapseFab();
+                collapseFabMenu();
                 bFabSubShown = false;
                 final Dialog diagEditUrl = new Dialog(this);
                 diagEditUrl.setTitle("Edit Recent");
@@ -305,7 +304,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            case R.id.bt_clear_history:
             case R.id.fab_iv_2:
                 if (bFabSubShown) {
-                    collapseFab();
+                    collapseFabMenu();
                     bFabSubShown = false;
                 }
                 // Display "Are you sure? Dialog
@@ -337,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.fab_iv_1:
                 Log.d(TAG, "OnClick(fab_iv_1)");
                 if (bFabSubShown) {
-                    collapseFab();
+                    collapseFabMenu();
                     bFabSubShown = false;
                 }
                 TextView tv = findViewById(R.id.actv_recent);
@@ -366,7 +365,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         String str;
+        Log.d(TAG, "loadPreferences():");
         mAppTheme = preferences.getString(APP_THEME, "theme_dark");
+        Log.d(TAG, "Theme="+mAppTheme);
 
         str = preferences.getString(URL_LIST, null);
         if (str != null) {
@@ -377,7 +378,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             mUrlList.add(str.substring(b));  // add the last one
         }
-        Log.d(TAG, "loadPreferences():");
         for (int i=0; i<mUrlList.size(); i++)
             Log.d(TAG, mUrlList.get(i));
     }
@@ -400,21 +400,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
 //===========================================
-    private void collapseFab() {
+    private void collapseFabMenu() {
         mFab.setImageResource(R.drawable.animated_minus);
         AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.playTogether(createCollapseAnimator(fabAction1, offset1),
-                createCollapseAnimator(fabAction2, offset2),
-                createCollapseAnimator(fabAction3, offset3));
+        animatorSet.playTogether(createCollapseAnimator(fabMenuItem1, offset1),
+                createCollapseAnimator(fabMenuItem2, offset2),
+                createCollapseAnimator(fabMenuItem3, offset3));
         animatorSet.addListener(new Animator.AnimatorListener() {
             @Override
             public void onAnimationStart(Animator animator) { }
             @Override
             public void onAnimationEnd(Animator animator) {
-                fabActionText1.setVisibility(View.INVISIBLE);
-                fabActionText2.setVisibility(View.INVISIBLE);
-                fabActionText3.setVisibility(View.INVISIBLE);
-//                bFabSubShown = false;
+                fabMenuText1.setVisibility(View.INVISIBLE);
+                fabMenuText2.setVisibility(View.INVISIBLE);
+                fabMenuText3.setVisibility(View.INVISIBLE);
             }
             @Override
             public void onAnimationCancel(Animator animator) { }
@@ -425,30 +424,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         animateFab();
     }
 
-    private void expandFab() {
+    private void expandFabMenu() {
         mFab.setImageResource(R.drawable.animated_plus);
         AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.playTogether(createExpandAnimator(fabAction1, offset1),
-                createExpandAnimator(fabAction2, offset2),
-                createExpandAnimator(fabAction3, offset3));
-
-        fabActionText1.setVisibility(View.VISIBLE);
-        fabActionText2.setVisibility(View.VISIBLE);
-        fabActionText3.setVisibility(View.VISIBLE);
+        animatorSet.playTogether(createExpandAnimator(fabMenuItem1, offset1),
+                createExpandAnimator(fabMenuItem2, offset2),
+                createExpandAnimator(fabMenuItem3, offset3));
+        animatorSet.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animator) { }
+            @Override
+            public void onAnimationEnd(Animator animator) {
+                // Make sure the text is visible at the end of animation
+                if (fabMenuText1.getVisibility() != View.VISIBLE)
+                    fabMenuText1.setVisibility(View.VISIBLE);
+                if (fabMenuText2.getVisibility() != View.VISIBLE)
+                    fabMenuText2.setVisibility(View.VISIBLE);
+                if (fabMenuText3.getVisibility() != View.VISIBLE)
+                    fabMenuText3.setVisibility(View.VISIBLE);
+            }
+            @Override
+            public void onAnimationCancel(Animator animator) { }
+            @Override
+            public void onAnimationRepeat(Animator animator) { }
+        });
+        // set the text label visible at the beginning of the animation
+        fabMenuText1.setVisibility(View.VISIBLE);
+        fabMenuText2.setVisibility(View.VISIBLE);
+        fabMenuText3.setVisibility(View.VISIBLE);
         animatorSet.start();
         animateFab();
-//        bFabSubShown = true;
     }
 
-    private static final String TRANSLATION_Y = "translationY";
-
     private Animator createCollapseAnimator(View view, float offset) {
-        return ObjectAnimator.ofFloat(view, TRANSLATION_Y, 0, offset)
+        return ObjectAnimator.ofFloat(view, "translationY", 0, offset)
                 .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime));
     }
 
     private Animator createExpandAnimator(View view, float offset) {
-        return ObjectAnimator.ofFloat(view, TRANSLATION_Y, offset, 0)
+        return ObjectAnimator.ofFloat(view, "translationY", offset, 0)
                 .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime));
     }
 
