@@ -21,7 +21,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
-                android:padding="6dp"
+                android:padding="@dimen/fab_text_padding"
                 android:text="Edit URL History"
                 android:visibility="invisible" />
             <ImageButton
@@ -46,7 +46,7 @@
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
                 android:text="Delete URL History"
-                android:padding="6dp"
+                android:padding="@dimen/fab_text_padding"
                 android:visibility="invisible"
                 />
             <ImageButton
@@ -72,7 +72,7 @@
                 android:layout_centerVertical="true"
                 android:text="Clear URL Entry"
                 android:gravity="center_vertical"
-                android:padding="6dp"
+                android:padding="@dimen/fab_text_padding"
                 android:visibility="invisible"
                 />
             <ImageButton

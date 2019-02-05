@@ -444,12 +444,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Animator createCollapseAnimator(View view, float offset) {
         return ObjectAnimator.ofFloat(view, TRANSLATION_Y, 0, offset)
-                .setDuration(getResources().getInteger(android.R.integer.config_mediumAnimTime));
+                .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime));
     }
 
     private Animator createExpandAnimator(View view, float offset) {
         return ObjectAnimator.ofFloat(view, TRANSLATION_Y, offset, 0)
-                .setDuration(getResources().getInteger(android.R.integer.config_mediumAnimTime));
+                .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime));
     }
 
     private void animateFab() {

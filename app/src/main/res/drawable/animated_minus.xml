@@ -3,11 +3,11 @@
     android:drawable="@drawable/minus">
 
     <target
-        android:animation="@anim/rotate_anticlockwise"
+        android:animation="@animator/rotate_anticlockwise"
         android:name="plus_group" />
 
     <target
-        android:animation="@anim/minus_to_plus"
+        android:animation="@animator/minus_to_plus"
         android:name="plus_path" />
 
 </animated-vector>
