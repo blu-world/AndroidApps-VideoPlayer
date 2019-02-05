@@ -22,7 +22,6 @@
                 android:propertyName="translationZ"
                 android:duration="@integer/fab_duration"
                 android:valueTo="0"
-                android:startDelay="@integer/fab_duration"
                 android:valueType="floatType" />
             <objectAnimator
                 android:propertyName="elevation"
