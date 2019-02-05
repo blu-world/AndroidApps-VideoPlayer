@@ -1,5 +1,20 @@
 <resources>
 
+
+    <style name="FloatingActionButton" parent="android:Widget.Material.Button">
+        <item name="android:background">@drawable/fab_background</item>
+        <item name="android:stateListAnimator">@anim/fab_state_list_animator</item>
+        <item name="android:layout_width">56dp</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="FloatingActionButton.Mini">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_margin">10dp</item>
+    </style>
+
     <!-- Base application theme. -->
     <style name="AppTheme.Light" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
