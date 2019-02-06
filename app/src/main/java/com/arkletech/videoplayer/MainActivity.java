@@ -1,5 +1,6 @@
 package com.arkletech.videoplayer;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
@@ -10,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
@@ -18,6 +20,8 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -39,23 +43,42 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.VideoView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     static final String TAG="App::VideoPlayer";
     static final String URL_LIST="url_list";
     static final String APP_THEME="appTheme";
+    static final String PLAY_HIDE_STATUS="AppHideStatus";
+    static final String PLAY_HIDE_TITLE="AppHideTitle";
+    static final String DEFAULT_PLAYLIET_DIR ="AppPlayListLocation";
 //    String video_url = "http://videocdn.bodybuilding.com/video/mp4/62000/62792m.mp4";
     private static ProgressDialog progressDialog;
     VideoView vv;
     Intent mVideoPlayer = null;
     String[] url_entries;
     Vector<String> mUrlList;
+    Vector<String> mUrlName;
     AutoCompleteTextView mActv;
     ArrayAdapter<String> mAdapter;
     String mAppTheme;
     boolean bFabSubShown=false;
     ImageButton mFab;
+    boolean mHideStatus=true;
+    boolean mHideAppTitle=true;
+    String mDefaultPlayListDir;
 
     private View fabMenuItem1;
     private View fabMenuItem2;
@@ -68,10 +91,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView fabMenuText1;
     private TextView fabMenuText2;
     private TextView fabMenuText3;
+    private int PLAY_LIST_JSON_FILE_WRITE = 1;
+    private int PLAY_LIST_JSON_FILE_LOAD = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         mUrlList = new Vector<String>();
+        mUrlName = new Vector<String>();
 
         loadPreferences(MainActivity.this);
 
@@ -82,7 +108,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         super.onCreate(savedInstanceState);
 
-        updateAdapterUrlEntries();
+//        importUrlList();
+        updateUrlEntries();
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -110,12 +137,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                Log.d(TAG, "fab::onClick()");
+                Log.d(TAG, "fab::onClick()");
                 bFabSubShown = !bFabSubShown;
-                if (bFabSubShown)
-                    mFab.setImageResource(R.mipmap.baseline_clear_white);
-                else
-                    mFab.setImageResource(R.mipmap.baseline_add_white);
                 if (bFabSubShown)
                     expandFabMenu();
                 else
@@ -140,9 +163,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
 
         CheckBox cb_hideTitle = findViewById(R.id.cb_hide_title);
-        cb_hideTitle.setChecked(true);
+        cb_hideTitle.setChecked(mHideAppTitle);
         CheckBox cb_hideStatus = findViewById(R.id.cb_hide_status);
-        cb_hideStatus.setChecked(true);
+        cb_hideStatus.setChecked(mHideStatus);
         Button button = findViewById(R.id.b_play);
         button.setOnClickListener((View.OnClickListener) this);
 //        button = findViewById(R.id.bt_edit_history);
@@ -151,12 +174,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //        button.setOnClickListener(this);
 
         //Creating the instance of ArrayAdapter containing list
-        mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, url_entries) {
+        // The ArrayAdapter, on being initialized by an array, converts the array into
+        // a AbstractList (List) which cannot be modified.
+        // Solution: Use an ArrayList<String> instead using an array while initializing the ArrayAdapter.
+        ArrayList<String> lst = new ArrayList<String>(Arrays.asList(url_entries));
+        mAdapter = new ArrayAdapter<String> (this, R.layout.dropdown_itme_layout, lst) {
             @NonNull
             @Override
             public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
                 View v = super.getView(position, convertView, parent);
                 v.setBackgroundColor(Color.LTGRAY);
+//                ((TextView)v).setText(url_entries[position]);
                 return v;
             }
         };
@@ -183,29 +211,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        else if (id == R.id.action_toggle) {
-            if (mAppTheme.compareTo("theme_dark") == 0) {
-                setTheme(R.style.AppTheme_Light);
-                mAppTheme = "theme_light";
-            }
-            else {
-                setTheme(R.style.AppTheme_Dark);
-                mAppTheme = "theme_dark";
-            }
-            savePreferences(this);
-            // restart the app to use the new Theme
-            Intent intent = getIntent();
-            finish();
-            startActivity(intent);
+        Log.d(TAG, "onOptionsItemSelected("+id+")");
+
+        switch (id) {
+            case R.id.action_settings:
+                return true;
+            case R.id.action_toggle:
+                if (mAppTheme.compareTo("theme_dark") == 0) {
+                    setTheme(R.style.AppTheme_Light);
+                    mAppTheme = "theme_light";
+                }
+                else {
+                    setTheme(R.style.AppTheme_Dark);
+                    mAppTheme = "theme_dark";
+                }
+                savePreferences(this);
+                // restart the app to use the new Theme
+                Intent intent = getIntent();
+                finish();
+                startActivity(intent);
+                break;
+            case R.id.action_import:
+                importUrlList();
+                break;
+            case R.id.action_export:
+                exportUrlList();
+                break;
         }
 
         return super.onOptionsItemSelected(item);
     }
-
 
     @Override
     protected void onPostResume() {
@@ -218,16 +253,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View view) {
-        Log.d("VideoPlayer", "onClick("+view.getId()+")");
+        Log.d(TAG, "onClick("+view.getId()+")");
         switch (view.getId()) {
             case R.id.b_play:
                 EditText et = findViewById(R.id.actv_recent);
                 CheckBox cb_hideTitle = findViewById(R.id.cb_hide_title);
                 CheckBox cb_hideStatus = findViewById(R.id.cb_hide_status);
 
+                mHideStatus = cb_hideStatus.isChecked();
+                mHideAppTitle = cb_hideTitle.isChecked();
                 mVideoPlayer.putExtra("VideoUrl", et.getText().toString());
-                mVideoPlayer.putExtra("HideStatusBar", (cb_hideStatus.isChecked()?"true":"false"));
-                mVideoPlayer.putExtra("HideAppTitleBar", (cb_hideTitle.isChecked()?"true":"false"));
+                mVideoPlayer.putExtra("HideStatusBar", (mHideStatus?"true":"false"));
+                mVideoPlayer.putExtra("HideAppTitleBar", (mHideAppTitle?"true":"false"));
 
                 // save to preference
                 String str=et.getText().toString();
@@ -240,8 +277,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 if (!found) {
                     mUrlList.add(str);
-                    updateAdapterUrlEntries();
-                    mAdapter.add(str);
+                    mUrlName.add("");
+                    updateUrlEntries();
+                    updateAdapterEntries();
                 }
 
                 savePreferences(this);
@@ -249,12 +287,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivity(mVideoPlayer);
                 break;
             case R.id.actv_recent:
-                mActv.showDropDown();
+                if (mUrlList != null && mUrlList.size() > 0)
+                    mActv.showDropDown();
                 break;
 //            case R.id.bt_edit_history:
             case R.id.fab_iv_3:
-                collapseFabMenu();
-                bFabSubShown = false;
+                if (bFabSubShown) {
+                    collapseFabMenu();
+                    bFabSubShown = false;
+                }
                 final Dialog diagEditUrl = new Dialog(this);
                 diagEditUrl.setTitle("Edit Recent");
                 diagEditUrl.setContentView(R.layout.dialog_listview_layout);
@@ -278,7 +319,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     public void onClick(DialogInterface dialog, int which) {
                                         mAdapter.remove(url_entries[item]);
                                         mUrlList.remove(item);
-                                        updateAdapterUrlEntries();
+                                        mUrlName.remove(item);
+                                        updateUrlEntries();
+                                        updateAdapterEntries();
                                         savePreferences(MainActivity.this);
                                         diagEditUrl.dismiss();
                                     }
@@ -320,6 +363,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             public void onClick(DialogInterface dialog, int which) {
                                 mAdapter.clear();
                                 mUrlList.clear();
+                                mUrlName.clear();
                                 SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                                 SharedPreferences.Editor editor = preferences.edit();
                                 editor.clear().apply();
@@ -345,10 +389,109 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //===========================================
+    private void exportUrlList() {
+//        Log.d(TAG, "exportUrlList():"+getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS));
+        Log.d(TAG, "exportUrlList():"+getExternalFilesDir(null));
+//        File file = new File(getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "PlayList.json");
+        File file = new File(getExternalFilesDir(null), "PlayList.json");
+        if (file != null) {
+            JSONObject json;
+            JSONArray jsonArray = new JSONArray();
+            try {
+                // Create JSON Objects
+                for (int i=0; i<mUrlList.size(); i++) {
+                    json = new JSONObject();
+                    if (i >= mUrlName.size())
+                        json.put("name", "");
+                    else
+                        json.put("name", mUrlName.get(i));
+                    json.put("url", mUrlList.get(i));
+                    jsonArray.put(json);
+                }
+                JSONObject jsonList = new JSONObject();
+                jsonList.put("list", jsonArray);
 
-    protected void updateAdapterUrlEntries()
+                String jsonStr = jsonList.toString();
+
+                // Write to file
+                FileOutputStream stream=null;
+                try {
+                    stream = new FileOutputStream(file);
+                    stream.write(jsonStr.getBytes());
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } finally {
+                    stream.close();
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private void importUrlList() {
+//        Log.d(TAG, "importUrlList():"+getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS));
+        Log.d(TAG, "importUrlList():"+getExternalFilesDir(null));
+//        File file = new File(getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "PlayList.json");
+        File file = new File(getExternalFilesDir(null), "PlayList.json");
+        String mResponse=null;
+        if (file != null) {
+            if (file.exists()) {
+                FileInputStream is = null;
+                try {
+                    is = new FileInputStream(file);
+                    int size = is.available();
+                    byte[] buffer = new byte[size];
+                    is.read(buffer);
+                    is.close();
+                    mResponse = new String(buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                JSONObject json=null;
+                try {
+                    json = new JSONObject(mResponse);
+//                    Log.d(TAG, "Json Content: "+mResponse);
+                    if (json != null && mResponse != null && mResponse.length() != 0) {
+                        JSONArray jsonArray = json.getJSONArray("list");
+                        mUrlList.clear();
+                        mUrlName.clear();
+                        for (int i=0; i<jsonArray.length(); i++) {
+                            JSONObject jo_inside = jsonArray.getJSONObject(i);
+                            String name = jo_inside.getString("name");
+                            mUrlName.add(name);
+                            String url = jo_inside.getString("url");
+                            mUrlList.add(url);
+                            Log.d(TAG, "name="+mUrlName.get(i)+", url="+mUrlList.get(i));
+                        }
+                        updateUrlEntries();
+                        updateAdapterEntries();
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    protected void updateAdapterEntries()
     {
-        Log.d(TAG, "updateAdapterUrlEntries(size="+mUrlList.size()+")");
+        Log.d(TAG, "updateAdapterEntries(size="+mUrlList.size()+")");
+        mAdapter.clear();
+        for (int i = 0; i < mUrlList.size(); i++) {
+            mAdapter.add(url_entries[i]);
+        }
+        mAdapter.notifyDataSetChanged();
+    }
+
+    protected void updateUrlEntries()
+    {
+        Log.d(TAG, "updateUrlEntries(size="+mUrlList.size()+")");
         if (mUrlList == null || mUrlList.size() == 0) {
             url_entries = new String[1];
             url_entries[0] = "";
@@ -367,8 +510,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String str;
         Log.d(TAG, "loadPreferences():");
         mAppTheme = preferences.getString(APP_THEME, "theme_dark");
-        Log.d(TAG, "Theme="+mAppTheme);
+        mHideStatus = preferences.getBoolean(PLAY_HIDE_STATUS, true);
+        mHideAppTitle = preferences.getBoolean(PLAY_HIDE_TITLE, true);
+        mDefaultPlayListDir = preferences.getString(DEFAULT_PLAYLIET_DIR, "");
 
+        Log.d(TAG, "Theme="+mAppTheme+",HideStatus="+mHideStatus+",HideAppTitle="+mHideAppTitle);
+/*
         str = preferences.getString(URL_LIST, null);
         if (str != null) {
             int b=0, e=0;
@@ -380,6 +527,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         for (int i=0; i<mUrlList.size(); i++)
             Log.d(TAG, mUrlList.get(i));
+*/
     }
 
     protected void savePreferences(Context context)
@@ -388,6 +536,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(APP_THEME, mAppTheme);
+        editor.putBoolean(PLAY_HIDE_STATUS, mHideStatus);
+        editor.putBoolean(PLAY_HIDE_TITLE, mHideAppTitle);
+        editor.putString(DEFAULT_PLAYLIET_DIR, mDefaultPlayListDir);
+
+/*
         String str = "";
         for (int i = 0; i< mUrlList.size(); i++) {
             str += mUrlList.get(i);
@@ -396,6 +549,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         editor.putString(URL_LIST, str);
         editor.apply();
+*/
     }
 
 
@@ -470,6 +624,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Drawable drawable = mFab.getDrawable();
         if (drawable instanceof Animatable) {
             ((Animatable) drawable).start();
+        }
+    }
+
+//===========================================
+// Check PERMISSIONs For App
+//===========================================
+    String[] permissions = new String[]{
+            Manifest.permission.INTERNET,
+//            Manifest.permission.READ_PHONE_STATE,
+//            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//            Manifest.permission.VIBRATE,
+//            Manifest.permission.RECORD_AUDIO,
+    };
+    private static final int PERMISSION_REQUEST_CODE = 10;
+
+    private boolean checkPermissions() {
+        int result;
+        List<String> listPermissionsNeeded = new ArrayList<>();
+        for (String p : permissions) {
+            result = ContextCompat.checkSelfPermission(this, p);
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                listPermissionsNeeded.add(p);
+            }
+        }
+        if (!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), PERMISSION_REQUEST_CODE);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // do something
+            }
+            return;
         }
     }
 }
