@@ -14,12 +14,16 @@ package com.arkletech.videoplayer;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.MediaController;
@@ -27,16 +31,17 @@ import android.widget.VideoView;
 
 public class PlayVideoActivity extends AppCompatActivity
 {
-
+	static final String TAG="VideoPlayer";
     private static ProgressDialog progressDialog;
     VideoView videoView;
+    String mUrl;
 
 	protected void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
 
 		Bundle extras = getIntent().getExtras();
-		String url = extras.getString("VideoUrl");
+		mUrl = extras.getString("VideoUrl");
 		String hideStatusBar = extras.getString("HideStatusBar");
 		String hideAppTitleBar = extras.getString("HideAppTitleBar");
 
@@ -61,7 +66,7 @@ public class PlayVideoActivity extends AppCompatActivity
 		progressDialog.setIndeterminate(false);
 		progressDialog.setCancelable(false);  
 		progressDialog.show();
-		PlayVideo(url);
+		PlayVideo(mUrl);
 	}
 
     @Override
@@ -74,6 +79,7 @@ public class PlayVideoActivity extends AppCompatActivity
 
 	private void PlayVideo(String video_url)
 	{
+		Log.d(TAG, "PlayVideo("+video_url+")");
 		try {
 			getWindow().setFormat(PixelFormat.TRANSLUCENT);
 			MediaController mediaController = new MediaController(PlayVideoActivity.this);
@@ -89,7 +95,30 @@ public class PlayVideoActivity extends AppCompatActivity
 					progressDialog.dismiss();     
 					videoView.start();
 				}
-			});           
+			});
+			videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+				@Override
+				public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
+					Log.d(TAG, "VideoView::onError("+i+","+i1+")");
+					progressDialog.dismiss();
+					final android.support.v7.app.AlertDialog.Builder builder;
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+						builder = new android.support.v7.app.AlertDialog.Builder(PlayVideoActivity.this, android.R.style.Theme_Material_Dialog_Alert);
+					} else {
+						builder = new AlertDialog.Builder(PlayVideoActivity.this);
+					}
+					builder.setTitle("Can't Play Video")
+							.setMessage(mUrl)
+							.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog, int which) {
+									finish();
+								}
+							})
+							.setIcon(android.R.drawable.ic_dialog_alert)
+							.show();
+					return true;
+				}
+			});
 
 		}
 		catch(Exception e) {
